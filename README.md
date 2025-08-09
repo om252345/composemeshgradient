@@ -14,9 +14,7 @@ The library uses OpenGL ES for high-performance rendering, ensuring your gradien
 Here are some examples of what you can create with MeshGrad:
 
 
-https://github.com/user-attachments/assets/ac740661-0011-4e2f-b1ae-114b35048d03
-
-https://github.com/user-attachments/assets/1152328c-be17-4e8c-a12b-cc0623888d07
+https://github.com/user-attachments/assets/ac740661-0011-4e2f-b1ae-114b35048d03 https://github.com/user-attachments/assets/1152328c-be17-4e8c-a12b-cc0623888d07
 
 
 
