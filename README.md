@@ -1,7 +1,7 @@
 # MeshGrad: SwiftUI-like Mesh Gradients for Android Jetpack Compose
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.om252345/compose-mesh-gradient.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.om252345%22%20AND%20a:%22compose-mesh-gradient%22)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.om252345/composemeshgradient.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.om252345%22%20AND%20a:%22composemeshgradient%22)
 
 MeshGrad is a lightweight, powerful Jetpack Compose library that brings beautiful, animated, and static mesh gradients to Android, inspired by the stunning visuals of SwiftUI. Create fluid, vibrant, and interactive backgrounds with a simple and intuitive API.
 
