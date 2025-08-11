@@ -13,7 +13,7 @@ The library uses OpenGL ES for high-performance rendering, ensuring your gradien
 
 Here are some examples of what you can create with ComposeMeshGradient:
 
-![github-1](https://github.com/user-attachments/assets/c0c78e75-77cb-49ba-ad34-b89712bd1b03) | ![Screen_Recording_20250811_110334_Compose Mesh Gradient](https://github.com/user-attachments/assets/f77f80af-1bdb-444d-817a-6bfa79ac2334) | ![Screen_Recording_20250811_223615_MeshGraadTest (1)](https://github.com/user-attachments/assets/f24e2a0d-a4a6-44c7-8038-04cdbf1f72cd)
+![github-1](https://github.com/user-attachments/assets/c0c78e75-77cb-49ba-ad34-b89712bd1b03)  ![Screen_Recording_20250811_110334_Compose Mesh Gradient](https://github.com/user-attachments/assets/f77f80af-1bdb-444d-817a-6bfa79ac2334)  ![Screen_Recording_20250811_223615_MeshGraadTest (1)](https://github.com/user-attachments/assets/f24e2a0d-a4a6-44c7-8038-04cdbf1f72cd)
 
 
 
