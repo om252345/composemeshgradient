@@ -1,9 +1,9 @@
-# MeshGrad: SwiftUI-like Mesh Gradients for Android Jetpack Compose
+# ComposeMeshGradient: SwiftUI-like Mesh Gradients for Android Jetpack Compose
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.om252345/composemeshgradient.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.om252345%22%20AND%20a:%22composemeshgradient%22)
 
-MeshGrad is a lightweight, powerful Jetpack Compose library that brings beautiful, animated, and static mesh gradients to Android, inspired by the stunning visuals of SwiftUI. Create fluid, vibrant, and interactive backgrounds with a simple and intuitive API.
+ComposeMeshGradient is a lightweight, powerful Jetpack Compose library that brings beautiful, animated, and static mesh gradients to Android, inspired by the stunning visuals of SwiftUI. Create fluid, vibrant, and interactive backgrounds with a simple and intuitive API.
 
 The library uses OpenGL ES for high-performance rendering, ensuring your gradients are smooth and battery-efficient.
 
@@ -11,7 +11,7 @@ The library uses OpenGL ES for high-performance rendering, ensuring your gradien
 
 ## ✨ Demos
 
-Here are some examples of what you can create with MeshGrad:
+Here are some examples of what you can create with ComposeMeshGradient:
 
 
 https://github.com/user-attachments/assets/ac740661-0011-4e2f-b1ae-114b35048d03
@@ -27,7 +27,7 @@ https://github.com/user-attachments/assets/1152328c-be17-4e8c-a12b-cc0623888d07
 
 ## 💡 Showcase & Inspiration
 
-MeshGrad provides the core tools to build a wide variety of dynamic and interactive effects. The `MeshGradientState` allows you to update colors and points on every frame, making it possible to connect the gradient to any external state or user input. Here are some ideas to inspire you:
+ComposeMeshGradient provides the core tools to build a wide variety of dynamic and interactive effects. The `MeshGradientState` allows you to update colors and points on every frame, making it possible to connect the gradient to any external state or user input. Here are some ideas to inspire you:
 
 * **Interactive Backgrounds:** Create gradients that respond to user input by capturing events and updating the `MeshGradientState`.
   * **Touch Interaction:** Make the mesh points ripple away from a user's touch.
