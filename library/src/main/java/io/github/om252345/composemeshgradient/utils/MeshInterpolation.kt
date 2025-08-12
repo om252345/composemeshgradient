@@ -206,9 +206,20 @@ internal object MeshInterpolation {
                 ((2f * tension) * p0 + (tension - 3f) * p1 + (3f - 2f * tension) * p2 - tension * p3) * t2 +
                 ((-tension) * p0 + tension * p2) * t + p1
     }
+}
 
-    fun lerp(start: Offset, stop: Offset, fraction: Float): Offset {
-        val t = fraction.coerceIn(0f, 1f)
-        return start + (stop - start) * t
-    }
+/**
+ * Helper function for linear interpolation between two Colors.
+ */
+fun lerp(start: Color, stop: Color, fraction: Float): Color {
+    val r = start.red + (stop.red - start.red) * fraction
+    val g = start.green + (stop.green - start.green) * fraction
+    val b = start.blue + (stop.blue - start.blue) * fraction
+    val a = start.alpha + (stop.alpha - start.alpha) * fraction
+    return Color(r, g, b, a)
+}
+
+fun lerp(start: Offset, stop: Offset, fraction: Float): Offset {
+    val t = fraction.coerceIn(0f, 1f)
+    return start + (stop - start) * t
 }

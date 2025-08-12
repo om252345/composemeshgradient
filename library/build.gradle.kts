@@ -6,13 +6,13 @@ plugins {
 }
 
 group = "io.github.om252345"
-version = "0.1.0"
+version = "0.2.0"
 android {
     namespace = "io.github.om252345.composemeshgradient"
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 28
+        minSdk = 21
         testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
     }
 

@@ -13,17 +13,10 @@ internal class MeshGradientRendererHelper(
     private val gridHeight: Int,         // Number of mesh vertices vertically  (e.g. 3 for 3x3)
     private val globalSubdivisions: Int = 64   // Number of SUBDIVISIONS PER PATCH ROW/COL
 ) {
-    private lateinit var vertexBuffer: FloatBuffer
-    private lateinit var colorBuffer: FloatBuffer
     private lateinit var indexBuffer: ShortBuffer
     private lateinit var uvBuffer: FloatBuffer
-
-    private var uTimeHandle: Int = 0
-    private var uBezierPositionsHandle: Int = 0
-    private var uBezierColorsHandle: Int = 0
-    private var uGridWidthHandle: Int = 0
-    private var uGridHeightHandle: Int = 0
-
+    private lateinit var posArray: FloatArray
+    private lateinit var colorArray: FloatArray
     private var indexCount: Int = 0
     private var program: Int = 0
 
@@ -55,7 +48,7 @@ internal class MeshGradientRendererHelper(
 
         // Create FloatBuffer for UVs and keep it as a field (uvBuffer)
         uvBuffer = ByteBuffer
-            .allocateDirect(uvs.size * java.lang.Float.BYTES)
+            .allocateDirect(uvs.size * Float.SIZE_BYTES)
             .order(ByteOrder.nativeOrder())
             .asFloatBuffer()
             .apply {
@@ -88,7 +81,7 @@ internal class MeshGradientRendererHelper(
         val indices = indexList.toShortArray()
         indexCount = indices.size
         indexBuffer = ByteBuffer
-            .allocateDirect(indices.size * java.lang.Short.BYTES)
+            .allocateDirect(indices.size * Short.SIZE_BYTES)
             .order(ByteOrder.nativeOrder())
             .asShortBuffer()
             .apply {
@@ -97,6 +90,8 @@ internal class MeshGradientRendererHelper(
             }
 
         program = compileShaders()
+        posArray = FloatArray(gridWidth * gridHeight * 2)
+        colorArray = FloatArray(gridWidth * gridHeight * 4)
 
 // check link status (optional but helpful)
         val linkStatus = IntArray(1)
@@ -128,7 +123,6 @@ internal class MeshGradientRendererHelper(
         // IMPORTANT: flip Y here if initBuffers() or your CPU special-casing expects a flip.
         // From our previous diagnosis flip once to match Compose (0 at top vs shader 0 at bottom).
         val uBezierPositionsHandle = GLES20.glGetUniformLocation(program, "u_BezierPositions")
-        val posArray = FloatArray(currentPoints.size * 2)
         var pi = 0
         for (p in currentPoints) {
             posArray[pi++] = p.x
@@ -138,7 +132,6 @@ internal class MeshGradientRendererHelper(
 
         // --- 4) uniforms: control point colors (RGBA normalized 0..1) ---
         val uBezierColorsHandle = GLES20.glGetUniformLocation(program, "u_BezierColors")
-        val colorArray = FloatArray(colors.size * 4)
         var ci = 0
         for (c in colors) {
             colorArray[ci++] = c.red   // ensure these are floats in [0..1]
