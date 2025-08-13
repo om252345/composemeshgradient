@@ -67,7 +67,7 @@ fun rememberSimplexAnimatedMesh(
     val initialPoints = remember(width, height) {
         generateMeshPoints(width, height, randomness = 0f)
     }
-    val meshState = rememberMeshGradientState(points = initialPoints)
+    val meshState = rememberMeshGradientState(points = initialPoints, colors = colors.toTypedArray())
 
     LaunchedEffect(Unit) {
         var time = 0f

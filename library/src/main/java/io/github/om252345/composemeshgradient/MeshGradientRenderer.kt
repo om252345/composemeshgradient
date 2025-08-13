@@ -7,59 +7,51 @@ import androidx.compose.ui.graphics.Color
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-internal class MeshGradientRenderer(
-    private val width: Int,
-    private val height: Int,
-    initialPoints: Array<Offset>,
-    private val colors: Array<Color>
+class MeshGradientRenderer(
+    private val gridWidth: Int,
+    private val gridHeight: Int,
+    private val globalSubdivisions: Int
 ) : GLSurfaceView.Renderer {
 
-    // The points that are actually drawn. This is now the single source of truth for positions.
-    private var currentPoints = initialPoints
-    private var currentColors: Array<Color> = colors
-    private lateinit var mesh: MeshGradientRendererHelper
+    private lateinit var helper: MeshGradientRendererHelper
 
-    init {
-        require(initialPoints.size == width * height) {
-            "Points array size must equal width * height (${width * height}), but was ${initialPoints.size}"
-        }
-        require(colors.size == width * height) {
-            "Colors array size must equal width * height (${width * height}), but was ${colors.size}"
-        }
-    }
+    // Stable internal copies; sized by grid
+    private val pointCount = gridWidth * gridHeight
+    private var currentPoints: FloatArray = FloatArray(pointCount * 2)
+    private var currentColors: FloatArray = FloatArray(pointCount * 4)
 
-    /**
-     * Updates the control points of the mesh. This method is thread-safe
-     * and should be called from the UI thread via `GLSurfaceView.queueEvent`.
-     */
-    fun updatePoints(newPoints: Array<Offset>, newColors: Array<Color>) {
-        // This method will be called on the GL thread, so direct access is safe.
-        currentPoints = newPoints
-        currentColors = newColors
-
-    }
-
-    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        // Set up OpenGL state
-        GLES20.glClearColor(0f, 0f, 0f, 0f)
+    override fun onSurfaceCreated(unused: GL10?, config: EGLConfig?) {
+        GLES20.glClearColor(0f, 0f, 0f, 1f)
         GLES20.glEnable(GLES20.GL_BLEND)
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
         GLES20.glEnable(GLES20.GL_CULL_FACE)
-        // Initialize mesh with the initial points and colors
-        mesh = MeshGradientRendererHelper(width, height)
-        mesh.initBuffers()
+        GLES20.glCullFace(GLES20.GL_BACK)       // default, cull back faces
+        GLES20.glFrontFace(GLES20.GL_CCW)       // now matches our fixed winding
+
+        helper = MeshGradientRendererHelper(gridWidth, gridHeight, globalSubdivisions)
+        helper.initBuffers() // compiles/links shaders, builds UV + indices, caches locations, preallocs uniform arrays
     }
 
-    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+    override fun onSurfaceChanged(unused: GL10?, width: Int, height: Int) {
         GLES20.glViewport(0, 0, width, height)
     }
 
-    override fun onDrawFrame(gl: GL10?) {
-        // The drawing logic is now very simple.
-        // It just clears the screen and draws the mesh with the current points.
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
-        // We pass a dummy time value as it's no longer used for animation here.
-        // The shader still has the uniform, so we must provide a value.
-        mesh.draw(currentPoints, currentColors)
+    override fun onDrawFrame(unused: GL10?) {
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+        helper.draw(currentPoints, currentColors)
+    }
+
+    /**
+     * Update points/colors in primitive form.
+     * Arrays must match grid size: points = N*2, colors = N*4.
+     * We copy to keep renderer-owned stable arrays (caller can reuse theirs).
+     */
+    fun updatePoints(newPoints: FloatArray, newColors: FloatArray) {
+        require(newPoints.size == pointCount * 2) { "points FloatArray must be ${pointCount * 2} floats" }
+        require(newColors.size == pointCount * 4) { "colors FloatArray must be ${pointCount * 4} floats" }
+
+        // Copy to avoid retaining external mutable arrays
+        System.arraycopy(newPoints, 0, currentPoints, 0, newPoints.size)
+        System.arraycopy(newColors, 0, currentColors, 0, newColors.size)
     }
 }

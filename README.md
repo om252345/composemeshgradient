@@ -55,14 +55,14 @@ Add the dependency to your module's `build.gradle.kts` or `build.gradle` file. T
 **build.gradle.kts (Kotlin DSL)**
 ```kotlin
 dependencies {
-    implementation("io.github.om252345:composemeshgradient:0.1.0") // Replace with the latest version
+    implementation("io.github.om252345:composemeshgradient:0.3.0") // Replace with the latest version
 }
 ```
 
 **build.gradle (Groovy DSL)**
 ```groovy
 dependencies {
-    implementation 'io.github.om252345:composemeshgradient:0.1.0' // Replace with the latest version
+    implementation 'io.github.om252345:composemeshgradient:0.3.0' // Replace with the latest version
 }
 ```
 

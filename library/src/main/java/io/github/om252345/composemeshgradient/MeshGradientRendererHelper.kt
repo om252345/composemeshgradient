@@ -1,8 +1,6 @@
 package io.github.om252345.composemeshgradient
 
 import android.opengl.GLES20
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -20,140 +18,109 @@ internal class MeshGradientRendererHelper(
     private var indexCount: Int = 0
     private var program: Int = 0
 
+    private var aGridUv = -1
+    private var uGridWidth = -1
+    private var uGridHeight = -1
+    private var uBezierPositions = -1
+    private var uBezierColors = -1
 
-    fun initBuffers() {
-        // === CONFIG / source values you already have in helper ===
-        // gridWidth: number of control points horizontally (e.g. 4)
-        // gridHeight: number of control points vertically (e.g. 4)
-        // globalSubdiv: subdivisions per cell edge (e.g. 4)
-        // indices: IntArray or ShortArray you already compute for the subdivided grid
-        // (You likely already compute indices; reuse that for elements)
-        // =========================================================
-
-        val totalX = (gridWidth - 1) * globalSubdivisions + 1
-        val totalY = (gridHeight - 1) * globalSubdivisions + 1
-        val vertexCount = totalX * totalY
-
-        // Build UVs in row-major order (u = [0..1] across X, v = [0..1] across Y)
-        val uvs = FloatArray(vertexCount * 2)
-        var i = 0
-        for (y in 0 until totalY) {
-            val v = if (totalY > 1) y.toFloat() / (totalY - 1) else 0f
-            for (x in 0 until totalX) {
-                val u = if (totalX > 1) x.toFloat() / (totalX - 1) else 0f
-                uvs[i++] = u
-                uvs[i++] = v
-            }
-        }
-
-        // Create FloatBuffer for UVs and keep it as a field (uvBuffer)
-        uvBuffer = ByteBuffer
-            .allocateDirect(uvs.size * Float.SIZE_BYTES)
-            .order(ByteOrder.nativeOrder())
-            .asFloatBuffer()
-            .apply {
-                put(uvs)
-                position(0)
-            }
-
-        // If you have an indices array (ShortArray or IntArray), upload to element buffer
-        // Here I show ShortArray usage — adapt to Int if you use GL_UNSIGNED_INT (note many Android devices prefer GL_UNSIGNED_SHORT)
-        val indexList = mutableListOf<Short>() // or Int if needed
-        for (y in 0 until totalY - 1) {
-            for (x in 0 until totalX - 1) {
-                val topLeft: Short = (y * totalX + x).toShort()
-                val topRight: Short = (y * totalX + x + 1).toShort()
-                val bottomLeft: Short = ((y + 1) * totalX + x).toShort()
-                val bottomRight: Short = ((y + 1) * totalX + x + 1).toShort()
-
-                // Triangle 1
-                indexList.add(topLeft)
-                indexList.add(bottomLeft)
-                indexList.add(topRight)
-
-                // Triangle 2
-                indexList.add(topRight)
-                indexList.add(bottomLeft)
-                indexList.add(bottomRight)
-            }
-        }
-
-        val indices = indexList.toShortArray()
-        indexCount = indices.size
-        indexBuffer = ByteBuffer
-            .allocateDirect(indices.size * Short.SIZE_BYTES)
-            .order(ByteOrder.nativeOrder())
-            .asShortBuffer()
-            .apply {
-                put(indices)
-                position(0)
-            }
-
-        program = compileShaders()
-        posArray = FloatArray(gridWidth * gridHeight * 2)
-        colorArray = FloatArray(gridWidth * gridHeight * 4)
-
-// check link status (optional but helpful)
-        val linkStatus = IntArray(1)
-        GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0)
-        if (linkStatus[0] == 0) {
-            val log = GLES20.glGetProgramInfoLog(program)
-            GLES20.glDeleteProgram(program)
-            throw RuntimeException("Program link failed: $log")
-        }
+    private fun cacheLocations() {
+        aGridUv = GLES20.glGetAttribLocation(program, "a_Grid_UV")
+        uGridWidth = GLES20.glGetUniformLocation(program, "u_GridWidth")
+        uGridHeight = GLES20.glGetUniformLocation(program, "u_GridHeight")
+        uBezierPositions = GLES20.glGetUniformLocation(program, "u_BezierPositions")
+        uBezierColors = GLES20.glGetUniformLocation(program, "u_BezierColors")
     }
 
+    fun initBuffers() {
+        // UVs
+        val totalX = (gridWidth - 1) * globalSubdivisions + 1
+        val totalY = (gridHeight - 1) * globalSubdivisions + 1
+        val uvList = FloatArray(totalX * totalY * 2)
+        var uvi = 0
+        for (y in 0 until totalY) {
+            val v = y.toFloat() / (totalY - 1).toFloat()
+            for (x in 0 until totalX) {
+                val u = x.toFloat() / (totalX - 1).toFloat()
+                uvList[uvi++] = u
+                uvList[uvi++] = v
+            }
+        }
+        uvBuffer = ByteBuffer.allocateDirect(uvList.size * 4).order(ByteOrder.nativeOrder())
+            .asFloatBuffer().put(uvList)
+        uvBuffer.position(0)
 
-    fun draw(currentPoints: Array<Offset>, colors: Array<Color>) {
+        // Step 3: pre-sized indices
+        indexCount = (totalX - 1) * (totalY - 1) * 6
+        val indices = ShortArray(indexCount)
+        var k = 0
+        for (y in 0 until totalY - 1) {
+            val row = y * totalX
+            val next = (y + 1) * totalX
+            for (x in 0 until totalX - 1) {
+                val tl = (row + x).toShort()
+                val tr = (row + x + 1).toShort()
+                val bl = (next + x).toShort()
+                val br = (next + x + 1).toShort()
+
+                // With 1f - p.y flip, swap winding to make CCW in NDC
+                // Triangle 1: TL, TR, BL  (instead of TL, BL, TR)
+                indices[k++] = tl
+                indices[k++] = tr
+                indices[k++] = bl
+
+                // Triangle 2: TR, BR, BL (instead of TR, BL, BR)
+                indices[k++] = tr
+                indices[k++] = br
+                indices[k++] = bl
+            }
+        }
+        indexBuffer = ByteBuffer.allocateDirect(indices.size * 2).order(ByteOrder.nativeOrder())
+            .asShortBuffer().put(indices)
+        indexBuffer.position(0)
+
+        // Create shader program (your existing compile logic)
+        program = compileShaders()
+
+        // Step 1: cache attribute/uniform locations once
+        aGridUv = GLES20.glGetAttribLocation(program, "a_Grid_UV")
+        uGridWidth = GLES20.glGetUniformLocation(program, "u_GridWidth")
+        uGridHeight = GLES20.glGetUniformLocation(program, "u_GridHeight")
+        uBezierPositions = GLES20.glGetUniformLocation(program, "u_BezierPositions")
+        uBezierColors = GLES20.glGetUniformLocation(program, "u_BezierColors")
+
+        // Allocate primitive uniform arrays (size fixed to number of control points)
+        val controlCount = gridWidth * gridHeight
+        posArray = FloatArray(controlCount * 2)
+        colorArray = FloatArray(controlCount * 4)
+    }
+
+    /** Draw with primitive arrays to avoid boxing */
+    fun draw(points: FloatArray, colors: FloatArray) {
         GLES20.glUseProgram(program)
 
-        // --- 1) attribute: a_Grid_UV ---
-        val uvHandle = GLES20.glGetAttribLocation(program, "a_Grid_UV")
-        GLES20.glEnableVertexAttribArray(uvHandle)
-        // 2 floats per vertex (u,v), tightly packed
-        GLES20.glVertexAttribPointer(uvHandle, 2, GLES20.GL_FLOAT, false, 0, uvBuffer)
+        GLES20.glEnableVertexAttribArray(aGridUv)
+        GLES20.glVertexAttribPointer(aGridUv, 2, GLES20.GL_FLOAT, false, 0, uvBuffer)
 
-        // --- 2) uniforms: grid dims (if your shader uses them) ---
-        val gridWidthHandle = GLES20.glGetUniformLocation(program, "u_GridWidth")
-        val gridHeightHandle = GLES20.glGetUniformLocation(program, "u_GridHeight")
-        GLES20.glUniform1i(gridWidthHandle, gridWidth)
-        GLES20.glUniform1i(gridHeightHandle, gridHeight)
+        GLES20.glUniform1i(uGridWidth, gridWidth)
+        GLES20.glUniform1i(uGridHeight, gridHeight)
 
-        // --- 3) uniforms: control point positions (normalized 0..1) ---
-        // IMPORTANT: flip Y here if initBuffers() or your CPU special-casing expects a flip.
-        // From our previous diagnosis flip once to match Compose (0 at top vs shader 0 at bottom).
-        val uBezierPositionsHandle = GLES20.glGetUniformLocation(program, "u_BezierPositions")
-        var pi = 0
-        for (p in currentPoints) {
-            posArray[pi++] = p.x
-            posArray[pi++] = 1f - p.y   // flip Y to match CPU convention used in your code
-        }
-        GLES20.glUniform2fv(uBezierPositionsHandle, currentPoints.size, posArray, 0)
+        // Copy incoming points/colors into stable arrays
+        System.arraycopy(points, 0, posArray, 0, points.size)
+        System.arraycopy(colors, 0, colorArray, 0, colors.size)
 
-        // --- 4) uniforms: control point colors (RGBA normalized 0..1) ---
-        val uBezierColorsHandle = GLES20.glGetUniformLocation(program, "u_BezierColors")
-        var ci = 0
-        for (c in colors) {
-            colorArray[ci++] = c.red   // ensure these are floats in [0..1]
-            colorArray[ci++] = c.green
-            colorArray[ci++] = c.blue
-            colorArray[ci++] = c.alpha
-        }
-        GLES20.glUniform4fv(uBezierColorsHandle, colors.size, colorArray, 0)
+        GLES20.glUniform2fv(uBezierPositions, gridWidth * gridHeight, posArray, 0)
+        GLES20.glUniform4fv(uBezierColors, gridWidth * gridHeight, colorArray, 0)
 
-        // --- 5) other uniforms your shader needs (e.g. viewport or any weights) ---
-        // (Set them here as your existing code does)
-
-        // --- 6) draw elements using the index buffer (triangles) ---
-        GLES20.glEnable(GLES20.GL_BLEND)
-        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
-
-        // Make sure indexBuffer position is reset
         indexBuffer.position(0)
-        GLES20.glDrawElements(GLES20.GL_TRIANGLES, indexCount, GLES20.GL_UNSIGNED_SHORT, indexBuffer)
+        GLES20.glDrawElements(
+            GLES20.GL_TRIANGLES,
+            indexCount,
+            GLES20.GL_UNSIGNED_SHORT,
+            indexBuffer
+        )
 
-        // Clean up attribute enable
-        GLES20.glDisableVertexAttribArray(uvHandle)
+        GLES20.glDisableVertexAttribArray(aGridUv)
     }
 
     private fun compileShaders(): Int {

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.om252345"
-version = "0.2.0"
+version = "0.3.0"
 android {
     namespace = "io.github.om252345.composemeshgradient"
     compileSdk = 35

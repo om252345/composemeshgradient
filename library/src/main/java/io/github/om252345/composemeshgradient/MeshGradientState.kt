@@ -2,12 +2,15 @@ package io.github.om252345.composemeshgradient
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.AnimationVector2D
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
@@ -19,52 +22,59 @@ import kotlinx.coroutines.launch
 @Stable
 class MeshGradientState(
     initialPoints: Array<Offset>,
+    initialColors: Array<Color>
 ) {
-    // Each point is an Animatable, allowing it to be animated independently.
-    private val _points =
-        initialPoints.map { Animatable(it, Offset.VectorConverter) }.toMutableStateList()
 
-    /**
-     * The current positions of the control points.
-     * Observing this value will trigger recomposition when any point's position changes.
-     */
-    val points: List<Offset>
-        get() = _points.map { it.value }
-
-    /**
-     * Animate a single control point to a new target offset.
-     *
-     * @param index The index of the control point to animate (in a row-major order).
-     * @param targetOffset The destination [Offset] for the point.
-     * @param animationSpec The [AnimationSpec] to use for the animation (e.g., tween, spring).
-     */
-    suspend fun animatePoint(
-        index: Int,
-        targetOffset: Offset,
-        animationSpec: AnimationSpec<Offset>
-    ) {
-        coroutineScope {
-            launch {
-                _points[index].animateTo(targetOffset, animationSpec)
-            }
-        }
+    // Original API data
+    private val _points = mutableStateListOf<Animatable<Offset, AnimationVector2D>>().apply {
+        initialPoints.forEach { add(Animatable(it, Offset.VectorConverter)) }
+    }
+    private val _colors = mutableStateListOf<Color>().apply {
+        addAll(initialColors)
     }
 
-    /**
-     * Instantly updates all control points to new positions without animation.
-     * This is ideal for per-frame updates from a continuous animation loop.
-     *
-     * @param newOffsets The new list of offsets for all control points.
-     */
+    // -------- Backward-compatible properties (will allocate when accessed) --------
+    val points: List<Offset> get() = _points.map { it.value }   // legacy-friendly but allocates
+    val colors: List<Color> get() = _colors                     // existing callers OK
+
+    // -------- New no-allocation snapshot arrays for renderer --------
+    private val snapshotPoints = FloatArray(_points.size * 2)   // x,y pairs
+    private val snapshotColors = FloatArray(_colors.size * 4)   // r,g,b,a
+
+    /** Returns a reusable float array of points: [x0,y0, x1,y1, ...]. Do not store beyond this frame. */
+    fun pointsArray(): FloatArray {
+        var i = 0
+        for (p in _points) {
+            snapshotPoints[i++] = p.value.x
+            snapshotPoints[i++] = p.value.y
+        }
+        return snapshotPoints
+    }
+
+    /** Returns a reusable float array of colors: [r,g,b,a, r,g,b,a, ...]. Do not store beyond this frame. */
+    fun colorsArray(): FloatArray {
+        var i = 0
+        for (c in _colors) {
+            snapshotColors[i++] = c.red
+            snapshotColors[i++] = c.green
+            snapshotColors[i++] = c.blue
+            snapshotColors[i++] = c.alpha
+        }
+        return snapshotColors
+    }
+
+    // -------- State mutation helpers --------
+    suspend fun animatePoint(index: Int, target: Offset, spec: AnimationSpec<Offset>) {
+        _points[index].animateTo(target, spec)
+    }
+
+    fun setColor(index: Int, color: Color) {
+        _colors[index] = color
+    }
+
     suspend fun snapAllPoints(newOffsets: List<Offset>) {
-        coroutineScope {
-            newOffsets.forEachIndexed { index, offset ->
-                if (index in _points.indices) {
-                    launch {
-                        _points[index].snapTo(offset)
-                    }
-                }
-            }
+        newOffsets.forEachIndexed { i, o ->
+            if (i in _points.indices) _points[i].snapTo(o)
         }
     }
 }
@@ -77,8 +87,9 @@ class MeshGradientState(
 @Composable
 fun rememberMeshGradientState(
     points: Array<Offset>,
+    colors: Array<Color>
 ): MeshGradientState {
     return remember(points) {
-        MeshGradientState(points)
+        MeshGradientState(points, colors)
     }
 }

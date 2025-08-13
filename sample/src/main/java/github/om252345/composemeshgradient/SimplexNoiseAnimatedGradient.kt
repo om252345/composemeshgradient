@@ -43,7 +43,8 @@ fun SimplexNoiseMeshExample(modifier: Modifier) {
     val basePoints = remember { initialPoints.toList() }
 
     // 2. Create and remember the state that will drive the animation
-    val meshState = rememberMeshGradientState(points = initialPoints)
+    val meshState =
+        rememberMeshGradientState(points = initialPoints, colors = colors.toTypedArray())
 
     // 3. Use a LaunchedEffect to run the continuous animation loop
     LaunchedEffect(Unit) {
@@ -108,8 +109,7 @@ fun SimplexNoiseMeshExample(modifier: Modifier) {
         modifier = modifier,
         width = width,
         height = height,
-        points = meshState.points.toTypedArray(), // The animated points drive the UI
-        colors = colors.toTypedArray()
+        state = meshState,
     )
 }
 
